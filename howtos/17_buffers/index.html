@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang=en>
+  <head></head>
+  <body style='margin:0'>
+    <canvas></canvas>
+  </body>
+  <script type='module'>
+  import {default as seagulls} from '../../seagulls.js' 
+
+  const sg = await seagulls.init()
+
+  const shader = seagulls.constants.vertex + `
+  @group(0) @binding(0) var<storage> state: f32;
+
+  @fragment 
+  fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
+    return vec4f( state,state,state, 1. );
+  }`
+
+  const data   = new Float32Array([0])
+
+  // this is needed to read from a buffer, by default
+  // they can't be read
+  const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+  const buffer = sg.buffer( data, '', usage )
+  const render = await sg.render({ shader, data:[ buffer ] })
+  sg.run( render )
+
+  setInterval( ()=> {
+    data[0] = !data[0]
+    buffer.write( data, 0, 0, 1 ) 
+  }, 1000 )
+
+  setInterval( async ()=> {
+    console.log( 'gpu buffer reading:', await buffer.read( 1, 0, Float32Array ))
+  }, 500 )
+  
+  </script>
+</html>

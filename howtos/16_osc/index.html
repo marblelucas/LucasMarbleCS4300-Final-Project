@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang=en>
+  <head></head>
+  <body style='margin:0'>
+    <canvas></canvas>
+  </body>
+  <script type='module'>
+  //import {default as seagulls} from 'https://cb.githack.com/charlieroberts/seagulls/raw/branch/main/seagulls.js'
+  import {default as seagulls} from '../../seagulls.js' 
+
+  const sg = await seagulls.init()
+
+  const shader = seagulls.constants.vertex + `
+  @group(0) @binding(0) var<uniform> sliders : vec3f;
+  @fragment 
+  fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
+    return vec4f( sliders, 1. );
+  }`
+
+  const sliders = sg.uniform([0,0,0])
+  const render = await sg.render({ shader, data:[ sliders ] })
+
+  sg.run( render )
+
+  let ws = new WebSocket( 'ws://127.0.0.1:8080' )
+  
+  // when connection is established...
+  ws.onopen = () => {
+    ws.send( 'a new client has connected.' )
+    ws.onmessage = msgbuffer => {
+      const msg = JSON.parse( msgbuffer.data )
+
+      switch( msg.address ) {
+        case '/fader1':
+          console.log( 'fader 1:', msg.args[0].value )
+          sliders[0] = msg.args[0].value
+          break;
+        case '/fader2':
+          sliders[1] = msg.args[0].value
+          break;
+        case '/fader3':
+          sliders[2] = msg.args[0].value
+          break;
+      }
+    }
+  }
+  </script>
+</html>
