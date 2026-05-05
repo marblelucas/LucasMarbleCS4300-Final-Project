@@ -22,7 +22,6 @@ struct Particle {
 @group(0) @binding(0) var<uniform> frame: f32;
 @group(0) @binding(1) var<uniform> res:   vec2f;
 @group(0) @binding(2) var<storage> state: array<Particle>;
-@group(0) @binding(3) var backBuffer:     texture_2d<f32>;
 @group(0) @binding(4) var backSampler:    sampler;
 
 fn random (st: vec2f) -> f32 {
@@ -95,14 +94,13 @@ fn fs( input: VertexOutput ) -> @location(0) vec4f {;
       discard;
     }
     if ((abs(input.uv.x) + 4*abs(input.uv.y) < 1. || 4*abs(input.uv.x) + abs(input.uv.y) < 1.) && input.ptype == 4.0){
-      alpha = 0.2*(1. - length(input.uv));
-      alpha = .4*(1. - length(input.uv)) + alpha;
+      alpha = 1.;
     }
     else if (input.ptype != 4.0){
       alpha = 1.;
     }
   }
 
-  return vec4f(red, green, blue, .4*(1. - length(input.uv)) + alpha);
+  return vec4f(red, green, blue, alpha);
 
 }
