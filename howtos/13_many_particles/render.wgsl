@@ -7,19 +7,23 @@ struct VertexOutput {
   @builtin(position) pos: vec4f,
   @location(0) @interpolate(flat) instance: u32,
   @location(1) uv: vec2f,
-  @location(2) alive: f32
+  @location(2) alive: f32,
+  @location(3) @interpolate(flat) ptype: f32
 };
 
 struct Particle {
   pos: vec2f,
   vel: vec2f,
-  alive: vec2f,
+  alive: f32,
+  ptype: f32,
   pad: vec2f
 };
 
 @group(0) @binding(0) var<uniform> frame: f32;
 @group(0) @binding(1) var<uniform> res:   vec2f;
 @group(0) @binding(2) var<storage> state: array<Particle>;
+@group(0) @binding(3) var backBuffer:     texture_2d<f32>;
+@group(0) @binding(4) var backSampler:    sampler;
 
 fn random (st: vec2f) -> f32 {
     return fract(sin(dot(st.xy,
@@ -31,19 +35,38 @@ fn random (st: vec2f) -> f32 {
 fn vs( input: VertexInput ) ->  VertexOutput {
   let aspect = res.y / res.x;
   let p = state[ input.instance ];
-  var size: vec2f;
-  if(f32( input.instance) < 1){
-    size = input.pos * 0.025;
+  var shape = input.pos;
+
+  let playerAlive = state[0].alive;
+
+  if (p.ptype == 4.0 && playerAlive == 1.0) {
+    let angle = frame * 0.05 + f32(input.instance) * 0.3;
+    shape = vec2f(shape.x * cos(angle) - shape.y * sin(angle), shape.x * sin(angle) + shape.y * cos(angle));
   }
-  else{
-    size = input.pos * (0.02);
+
+  var size = 0.02;
+
+  
+
+  if (p.ptype == 1.0) {
+    size = 0.01;
   }
-  //return vec4f( p.pos.x + size.x * aspect, p.pos.y + size.y, 0., 1.); 
+  else if (p.ptype == 2.0 || p.ptype == 4.0) {
+    size = 0.04;
+  }
+  else if (p.ptype == 3.0) {
+    size = 0.1;
+  }
+
+  shape *= size;
+
   var out = VertexOutput();
-  out.pos = vec4f( p.pos.x + size.x * aspect, p.pos.y + size.y, 0., 1.);
+
+  out.pos = vec4f(p.pos.x + shape.x * aspect, p.pos.y + shape.y, 0., 1.);
   out.instance = input.instance;
   out.uv = input.pos;
-  out.alive = p.alive.x;
+  out.alive = p.alive;
+  out.ptype = p.ptype;
   return out;
 }
 
@@ -64,16 +87,22 @@ fn fs( input: VertexOutput ) -> @location(0) vec4f {;
     }
   }
   else {
-    blue = 1.0;
+    blue = 0.439;
     red = 1.0;
+    green = 0.129;
     alpha = 0.;
     if (length(input.uv) > 1.){
       discard;
     }
-    if (abs(input.uv.x) < 0.1 || abs(input.uv.y) < 0.1){
+    if ((abs(input.uv.x) + 4*abs(input.uv.y) < 1. || 4*abs(input.uv.x) + abs(input.uv.y) < 1.) && input.ptype == 4.0){
       alpha = 0.2*(1. - length(input.uv));
+      alpha = .4*(1. - length(input.uv)) + alpha;
     }
-    alpha = .4*(1. - length(input.uv)) + alpha;
+    else if (input.ptype != 4.0){
+      alpha = 1.;
+    }
   }
-  return vec4f( red, green, blue, 1);
+
+  return vec4f(red, green, blue, .4*(1. - length(input.uv)) + alpha);
+
 }
