@@ -1,6 +1,8 @@
 import { default as seagulls } from '../../seagulls.js'
 
 const sg = await seagulls.init(),
+      combine_shader = seagulls.constants.vertex + await seagulls.import( './combine.wgsl' ),
+      background_shader = seagulls.constants.vertex + await seagulls.import( './background.wgsl' ),
       render_shader  = await seagulls.import( './render.wgsl' ),
       compute_shader = await seagulls.import( './compute.wgsl' )
 
@@ -29,6 +31,7 @@ state[2] = 0;
 state[3] = 0;
 state[5] = 0;
 
+var setClearColor = [0, 0, 0, 0];
 
 const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
 
@@ -39,7 +42,10 @@ const state_b = sg.buffer( state, '', usage ),
       y_move  = sg.uniform( 0 ),
       mode    = sg.uniform( 6 ),
       back    = new Float32Array( seagulls.width * seagulls.height * 4 ),
-      trail   = sg.texture( back )
+      tRender   = sg.texture( back ),
+      tBackground = sg.texture( back ),
+      color   = sg.uniform([ 0, 1, 0, 1])
+      
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyD') x_move.value = 4.0;
@@ -84,25 +90,31 @@ function modeSwitcher() {
   switch (mode.value){
     case 0:
       document.getElementById('mode').textContent = 'Straight';
-      key++;
+      color.value = [0, 0.1, 0, 0]
       break;
     case 1:
       document.getElementById('mode').textContent = 'Orbit';
+      color.value = [0, 0, 0.1, 0]
       break;
     case 2:
       document.getElementById('mode').textContent = 'Pursuit';
+      color.value = [0.1, 0, 0, 0]
       break;
     case 3:
       document.getElementById('mode').textContent = 'Ricochet';
+      color.value = [0.1, 0.1, 0, 0]
       break;
     case 4:
       document.getElementById('mode').textContent = 'Arc';
+      color.value = [0.1, 0, 0.1, 0]
       break;
     case 5:
       document.getElementById('mode').textContent = 'Wind';
+      color.value = [0, 0.1, 0.1, 0]
       break;
     case 6:
       document.getElementById('mode').textContent = 'Pressure';
+      color.value = [0.1, 0.1, 0.1, 0]
       break;
   }
 
@@ -132,19 +144,37 @@ function increaseTimer(){
 
 const timer = setInterval(increaseTimer, 1000);
 
+const background = await sg.render({
+  shader: background_shader,
+  data: [
+    color
+  ],
+  copy: tBackground
+})
+
 const render = await sg.render({
   shader: render_shader,
   data: [
     frame_u,
     res_u,
     state_b,
-    trail,
     sg.sampler()
   ],
   onframe() { frame_u.value++ },
-  copy: trail,
+  copy: tRender,
+  clearColor: [0, 0, 0, 0],
   count: NUM_PARTICLES,
   blend: true
+})
+
+const combine = await sg.render({
+  shader: combine_shader,
+  data: [
+    tRender,
+    tBackground,
+    sg.sampler(),
+  ],
+  blend: false
 })
 
 const WORKGROUP_SIZE = 8
@@ -176,4 +206,4 @@ async function checkPlayerAlive() {
   }
 }
 
-sg.run( compute, render )
+sg.run( compute, background, render, combine)
