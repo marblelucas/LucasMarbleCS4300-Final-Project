@@ -116,7 +116,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   else if (mode == 5.0 && i != 0 && p.ptype != 4.0){
     if (p.ptype == 1.0){
       next.x = p.pos.x + (2. / res.x) * abs(p.vel.x * 4);
-    next.y = p.pos.y;
+      next.y = p.pos.y;
     }
     else if (p.ptype == 2.0){
       next.x = p.pos.x + (2. / res.x) * abs(p.vel.x);
@@ -124,7 +124,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
     }
     else {
       next.x = p.pos.x + (2. / res.x) * abs(p.vel.x * 2);
-    next.y = p.pos.y;
+      next.y = p.pos.y;
     }
   }
   else if (mode == 6.0 && i != 0 && p.ptype != 4.0){
