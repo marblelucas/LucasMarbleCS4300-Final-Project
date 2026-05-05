@@ -37,7 +37,7 @@ const state_b = sg.buffer( state, '', usage ),
       res_u   = sg.uniform([ sg.width, sg.height ]),
       x_move  = sg.uniform( 0 ),
       y_move  = sg.uniform( 0 ),
-      mode    = sg.uniform( 0 ),
+      mode    = sg.uniform( 6 ),
       back    = new Float32Array( seagulls.width * seagulls.height * 4 ),
       trail   = sg.texture( back )
 
@@ -73,7 +73,12 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'KeyS') y_move.value = 0.0;
 });
 
-const modeSwitcher = setInterval(() => {
+let modeRunning = true;
+
+function modeSwitcher() {
+  if (!modeRunning){
+    return;
+  }
   mode.value = (mode.value + 1) % 7;
   let key = 2;
   switch (mode.value){
@@ -101,7 +106,14 @@ const modeSwitcher = setInterval(() => {
       break;
   }
 
-}, 5000);
+  let modeChange = Math.random() * 14000 + 1000;
+
+  setTimeout(modeSwitcher, modeChange);
+};
+
+modeSwitcher();
+
+
 
 var seconds = 0;
 
@@ -160,7 +172,7 @@ async function checkPlayerAlive() {
 
   if (alive[4] === 0) {
     clearInterval(timer);
-    clearInterval(modeSwitcher);
+    modeRunning = false;
   }
 }
 
