@@ -42,6 +42,10 @@ fn vs( input: VertexInput ) ->  VertexOutput {
     let angle = frame * 0.05 + f32(input.instance) * 0.3;
     shape = vec2f(shape.x * cos(angle) - shape.y * sin(angle), shape.x * sin(angle) + shape.y * cos(angle));
   }
+  if (p.ptype == 3.0 && playerAlive == 1.0) {
+    let angle = frame * 0.10 + f32(input.instance) * 0.3;
+    shape = vec2f(shape.x * cos(angle) - shape.y * sin(angle), shape.x * sin(angle) + shape.y * cos(angle));
+  }
 
   var size = 0.02;
 
@@ -90,13 +94,25 @@ fn fs( input: VertexOutput ) -> @location(0) vec4f {;
     red = 1.0;
     green = 0.129;
     alpha = 0.;
-    if (length(input.uv) > 1.){
+    if (length(input.uv) > 1. && input.ptype != 3.0){
       discard;
     }
     if ((abs(input.uv.x) + 4*abs(input.uv.y) < 1. || 4*abs(input.uv.x) + abs(input.uv.y) < 1.) && input.ptype == 4.0){
       alpha = 1.;
     }
-    else if (input.ptype != 4.0){
+    else if (input.ptype == 3.0){
+      if (length(input.uv) < 0.55 || 
+      abs((input.uv.x - input.uv.y)/sqrt(2.0)) + 4*abs((input.uv.x + input.uv.y)/sqrt(2.0)) < 1.0 || 
+      4*abs((input.uv.x - input.uv.y)/sqrt(2.0)) + abs((input.uv.x + input.uv.y)/sqrt(2.0)) < 1.0 ||
+      abs(input.uv.x) + 4*abs(input.uv.y) < 1.0 || 
+      4*abs(input.uv.x) + abs(input.uv.y) < 1.0){
+        alpha = 1.;
+        if (length(input.uv) > 0.2 && length(input.uv) < 0.35){
+          alpha = 0.;
+        }
+      }
+    }
+    else if (input.ptype != 4.0 && input.ptype != 3.0){
       alpha = 1.;
     }
   }
