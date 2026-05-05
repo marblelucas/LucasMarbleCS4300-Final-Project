@@ -49,7 +49,7 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
       player.alive = 0.0;
       state[0] = player;
     }
-    else if (dist < 0.1 && p.ptype == 3.0){
+    else if (dist < 0.08 && p.ptype == 3.0){
       player.alive = 0.0;
       state[0] = player;
     }
