@@ -21,9 +21,27 @@ fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   let p = pheromones[ u32(pidx) ];
   let v = render[ u32(pidx) ];
 
-  let out = select( vec3(p) , vec3(1.,0.,0.), v == 1. );
-  
-  return vec4f( out, 1. );
+  var color = vec3(p);
+
+  let ptype = abs(p);
+
+  if (ptype == 1.) {
+    color = vec3(0., 1., 1.);
+  } else if (ptype == 2.) {
+    color = vec3(1., 0., 1.);
+  } else if (ptype == 3.) {
+    color = vec3(1., 1., 0.);
+  }
+
+  if (v == 1.) {
+    color = vec3(1., 0., 0.); // red
+  } else if (v == 2.) {
+    color = vec3(0., 1., 0.); // green
+  } else if (v == 3.) {
+    color = vec3(0., 0., 1.); // blue
+  }
+
+  return vec4f(color, 1.);
 }`
 
 const compute_shader =`
@@ -52,27 +70,63 @@ fn cs(@builtin(global_invocation_id) cell:vec3u)  {
   let pIndex    = pheromoneIndex( vant.pos );
   let pheromone = pheremones[ pIndex ];
 
-  // if pheromones were found
-  if( pheromone != 0. ) {
-    vant.dir += select(.25,-.25,vant.flag==0.); // turn 90 degrees counter-clockwise
-    pheremones[ pIndex ] = 0.;  // set pheromone flag
-  }else{
-    vant.dir += select(-.25,.25,vant.flag==0.); // turn 90 degrees counter-clockwise
-    pheremones[ pIndex ] = 1.;  // unset pheromone flag
+  let state = pheromone > 0.; // current binary state
+
+  
+
+  if (vant.flag == 0. && !state) {
+    
+    let goRight = fract(sin(f32(cell.x) * 482.2439) * 68347.23947) > 0.5;
+    
+    vant.dir = select(0.75, 0.25, goRight);
+
+  }
+  else if(vant.flag == 1. && !state) {
+
+    let goUp = fract(sin(f32(cell.x) * 482.2439) * 68347.23947) > 0.5;
+    
+    vant.dir = select(0., 0.5, goUp);
+
+  }
+  else if(vant.flag == 2. && !state) {
+
+  let rot = fract(sin(f32(cell.x) * 482.2439) * 68347.23947);
+
+  if (rot < 0.25) {
+    vant.dir = 0.125;
+  } 
+  else if (rot < 0.5) {
+    vant.dir = 0.375;
+  } 
+  else if (rot < 0.75) {
+    vant.dir = 0.625;
+  } 
+  else {
+    vant.dir = 0.875;
   }
 
-  // calculate direction based on vant heading
+  }
+  else if(vant.flag + 1 != pheromone) {
+    vant.dir += 0.25;
+  } 
+  else {
+    vant.dir -= 0.25;
+  } 
+  
+
   let dir = vec2f( sin( vant.dir * pi2 ), cos( vant.dir * pi2 ) );
   
   vant.pos = round( vant.pos + dir ); 
 
   vants[ cell.x ] = vant;
   
-  // we'll look at the render buffer in the fragment shader
-  // if we see a value of one a vant is there and we can color
-  // it accordingly. in our JavaScript we clear the buffer on every
-  // frame.
-  render[ pIndex ] = 1.;
+  if (pheromone != 0.) {
+    pheremones[pIndex] = 0.;
+  } else {
+    pheremones[pIndex] = vant.flag + 1.;
+  }
+
+  render[pIndex] = vant.flag + 1.;
 }`
  
 const NUM_PROPERTIES = 4 // must be evenly divisble by 4!
@@ -85,7 +139,7 @@ for( let i = 0; i < NUM_AGENTS * NUM_PROPERTIES; i+= NUM_PROPERTIES ) {
   vants[ i ]   = Math.floor( (offset+Math.random()*STARTING_AREA) * W ) // x
   vants[ i+1 ] = Math.floor( (offset+Math.random()*STARTING_AREA) * H ) // y
   vants[ i+2 ] = 0 // direction 
-  vants[ i+3 ] = Math.round( Math.random()  ) // vant behavior type 
+  vants[i+3] = Math.floor(Math.random() * 3) // vant behavior type 
 }
 
 const sg = await seagulls.init()
@@ -113,3 +167,5 @@ const compute = sg.compute({
 })
 
 sg.run( compute, render )
+
+
