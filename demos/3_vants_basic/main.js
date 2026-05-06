@@ -34,11 +34,11 @@ fn fs( @builtin(position) pos : vec4f ) -> @location(0) vec4f {
   }
 
   if (v == 1.) {
-    color = vec3(1., 0., 0.); // red
+    color = vec3(1., 0., 0.);
   } else if (v == 2.) {
-    color = vec3(0., 1., 0.); // green
+    color = vec3(0., 1., 0.);
   } else if (v == 3.) {
-    color = vec3(0., 0., 1.); // blue
+    color = vec3(0., 0., 1.);
   }
 
   return vec4f(color, 1.);
